@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+.env
+docs/INSECT_설계서_통합본.md
