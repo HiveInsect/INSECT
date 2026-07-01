@@ -37,4 +37,4 @@ class Finding:
     line: int # 몇 번째 줄
     message: str # 사용자에게 보여줄 설명
     lesson_id: str # 교육 레슨 연결
-    evidence: list = field(default_factory=list)  # ← 이 Finding을 만든 근거 Fact들
+    evidence: list[Fact] = field(default_factory=list)  # ← 이 Finding을 만든 근거 Fact들
