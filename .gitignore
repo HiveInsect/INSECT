@@ -4,5 +4,4 @@ __pycache__/
 .venv/
 venv/
 .env
-docs/INSECT_설계서_통합본.md
-docs/프레임.md
+docs/

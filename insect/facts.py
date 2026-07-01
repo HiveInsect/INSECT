@@ -1,8 +1,18 @@
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
 
-@dataclass
-class Fact(frozen=True):
+"""insect/facts.py
+
+INSECT 탐지 엔진의 핵심 자료구조.
+
+Fact  : 설정 파일에서 파싱한 사실 하나 (포맷 공통 중간표현)
+Finding : 룰이 판정한 취약점 하나
+Severity : 취약점 심각도 등급
+"""
+
+@dataclass(frozen=True)
+class Fact:
     """설정 파일에서 발견한 사실 하나.
 
     여러 포맷(compose/sql/env)을 이 공통 형식으로 통일한다.
@@ -10,7 +20,7 @@ class Fact(frozen=True):
     """
     kind: str # 종류
     subject: str # 대상 리소스
-    attrs: dict # 세부 내용
+    attrs: dict[str, Any] # 세부 내용
     file: str # 나온 파일
     line: int # 몇 번째 줄
     source_format: str # 출처 포맷
