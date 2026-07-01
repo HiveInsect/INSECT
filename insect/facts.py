@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 @dataclass
-class Fact:
+class Fact(frozen=True):
     """설정 파일에서 발견한 사실 하나.
 
     여러 포맷(compose/sql/env)을 이 공통 형식으로 통일한다.
