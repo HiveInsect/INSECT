@@ -1,0 +1,1 @@
+from insect import scan
