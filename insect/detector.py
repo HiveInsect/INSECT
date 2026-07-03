@@ -43,4 +43,4 @@ def classify_file(filename: str, dir: str) -> str | None:
         return "next_config"
     return None
 
-print(detect_files(input("Enter the path to scan for files: ")))
+# print(detect_files(input("Enter the path to scan for files: ")))
