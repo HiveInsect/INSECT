@@ -1,1 +1,1 @@
-from insect import scan
+from insect.engine import scan

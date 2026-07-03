@@ -1,5 +1,5 @@
 import argparse
-import engine
+from insect import engine
 
 def main():
     # 1. 파서 객체 생성
