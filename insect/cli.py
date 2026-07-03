@@ -21,7 +21,7 @@ def main():
         files = engine.scan(args.path)
         # for file_path, filename, file_type in files:
         #     print(f"File: {filename}, Path: {file_path}, Type: {file_type}")
-        print(f"Total files scanned: {len(files)}")
+        print(f"스캔 파일 대상 개수: {len(files)}")
 
 if __name__ == "__main__":
     main()
