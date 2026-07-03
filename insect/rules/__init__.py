@@ -15,17 +15,17 @@ class RuleRegistry:
     _rules: dict[str, Rule] = {}
 
     @classmethod
-    def register(cls, rule: Rule):
+    def register(cls, rule: Rule): # 룰 등록
         cls._rules[rule.id] = rule
 
     @classmethod
-    def get_rule(cls, rule_id: str) -> Rule:
+    def get_rule(cls, rule_id: str) -> Rule: # 룰 id로 룰 조회
         return cls._rules[rule_id]
 
     @classmethod
-    def all_rules(cls) -> list[Rule]:
+    def all_rules(cls) -> list[Rule]: # 전체 룰 조회
         return list(cls._rules.values())
 
     @classmethod
-    def clear(cls):
+    def clear(cls): # 룰 목록 초기화
         cls._rules = {}

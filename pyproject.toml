@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "insect"
+version = "0.1.0"
+description = "AI 코딩 도구 산출물 및 IaC 배포 설정 사전 배포 보안 스캐너"
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml",
+    "sqlparse",
+]
+
+[project.scripts]
+insect = "insect.cli:main"
