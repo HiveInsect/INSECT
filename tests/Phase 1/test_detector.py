@@ -39,11 +39,26 @@ def test_classify_compose_override_yaml():
 def test_classify_compose_wrong_extension_returns_none():
     assert classify_file("docker-compose.txt", "/project") is None
 
-
 # startswith 매칭이라 접두사가 붙은 compose 파일명은 인식 못함 (알려진 한계)
 def test_classify_prefixed_compose_file():
     assert classify_file("my-docker-compose.yml", "/project") == "compose"
 
+def test_classify_docker_compose_test_yml():
+    assert classify_file("docker-compose.test.yml", "/project") == "compose"
+
+
+def test_classify_docker_compose_staging_yml():
+    assert classify_file("docker-compose.staging.yml", "/project") == "compose"
+
+
+def test_classify_composer_yml_not_matched():
+    # "compose"가 부분문자열로 들어간 무관한 도구(PHP Composer) 오탐 방지
+    assert classify_file("composer.yml", "/project") is None
+
+
+def test_classify_recompose_yml_not_matched():
+    # "compose" 앞에 알파벳이 바로 붙는 경우(단어 경계 없음) 오탐 방지
+    assert classify_file("recompose.yml", "/project") is None
 
 # ─────────────────────────────────────────────────────────
 # classify_file — dockerfile
@@ -62,6 +77,11 @@ def test_classify_dockerfile_lowercase_not_matched():
 def test_classify_dockerfile_variant():
     assert classify_file("Dockerfile.dev", "/project") == "dockerfile"
 
+def test_classify_dockerfile_prod():
+    assert classify_file("Dockerfile.prod", "/project") == "dockerfile"
+
+def test_classify_dockerfile_test():
+    assert classify_file("Dockerfile.test", "/project") == "dockerfile"
 
 # ─────────────────────────────────────────────────────────
 # classify_file — supabase migration
@@ -142,6 +162,20 @@ def test_classify_env_production():
 def test_classify_env_wrong_prefix_returns_none():
     assert classify_file("env.txt", "/project") is None
 
+def test_classify_env_test():
+    assert classify_file(".env.test", "/project") == "env"
+
+def test_classify_env_development_local():
+    assert classify_file(".env.development.local", "/project") == "env"
+
+
+# 앞쪽 .*를 없앴으므로, 이제 접두사 붙은 env는 매칭되지 않음 (의도한 동작 변경)
+def test_classify_env_with_prefix_not_matched():
+    assert classify_file("myapp.env", "/project") is None
+
+
+def test_classify_env_environment_word_not_matched():
+    assert classify_file(".environment", "/project") is None
 
 # ─────────────────────────────────────────────────────────
 # classify_file — vercel
@@ -171,10 +205,15 @@ def test_classify_github_workflow_yml():
 def test_classify_github_workflow_yaml():
     assert classify_file("ci.yaml", WORKFLOWS_DIR) == "github_workflow"
 
-
 def test_classify_github_workflow_wrong_dir():
     assert classify_file("ci.yml", "/project/workflows") is None
 
+def test_classify_github_workflow_custom_name():
+    assert classify_file("deploy.yml", WORKFLOWS_DIR) == "github_workflow"
+
+def test_classify_github_workflow_nested_subdir_not_matched():
+    # workflows 바로 밑이 아니라 한 단계 더 들어간 서브폴더는 dir.name이 "sub"가 되어 조건 불충족
+    assert classify_file("deploy.yml", "/project/.github/workflows/sub") is None
 
 # ─────────────────────────────────────────────────────────
 # classify_file — next config
@@ -206,12 +245,14 @@ def test_classify_unknown_file_returns_none():
 
 def test_classify_empty_filename_returns_none():
     # startswith("")는 항상 True지만 endswith 검사에서 걸러져 결국 None
-    assert classify_file("", "/project") is None
+    with pytest.raises(ValueError):
+        classify_file("", "/project")
 
 
 # filename=None이면 .startswith() 호출에서 AttributeError 발생 (방어 로직 없음)
 def test_classify_none_filename_does_not_crash():
-    assert classify_file(None, "/project") is None
+    with pytest.raises(ValueError):
+        classify_file(None, "/project")
 
 
 # dir=''이면 None으로 변환되고 dir.name 접근 시 AttributeError 발생 (방어 로직 없음)
@@ -304,3 +345,27 @@ def test_detect_files_excludes_git_directory(tmp_path):
 
     assert "config" not in filenames
     assert "docker-compose.yml" in filenames
+
+def test_detect_files_excludes_venv_directory(tmp_path):
+    venv_dir = tmp_path / ".venv"
+    venv_dir.mkdir()
+    (venv_dir / "pyvenv.cfg").write_text("home = /usr/bin")
+    (tmp_path / "docker-compose.yml").write_text("version: '3'")
+
+    result = detect_files(str(tmp_path))
+    filenames = {name for _, name, _ in result}
+
+    assert "pyvenv.cfg" not in filenames
+    assert "docker-compose.yml" in filenames
+
+def test_detect_files_excludes_node_modules_directory(tmp_path):
+    nm_dir = tmp_path / "node_modules" / "some-package"
+    nm_dir.mkdir(parents=True)
+    (nm_dir / "index.js").write_text("module.exports = {};")
+    (tmp_path / "compose.yml").write_text("version: '3'")
+
+    result = detect_files(str(tmp_path))
+    filenames = {name for _, name, _ in result}
+
+    assert "index.js" not in filenames
+    assert "compose.yml" in filenames
