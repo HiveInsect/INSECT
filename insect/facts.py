@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
+from insect.fact_kinds import FactKind
 
 """insect/facts.py
 
@@ -18,7 +19,7 @@ class Fact:
     여러 포맷(compose/sql/env)을 이 공통 형식으로 통일한다.
     이렇게 하면 룰이 원본 포맷 문법을 몰라도 된다.
     """
-    kind: str # 종류
+    kind: FactKind # 종류
     subject: str # 대상 리소스
     attrs: dict[str, Any] # 세부 내용
     file: str # 나온 파일
