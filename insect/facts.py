@@ -40,7 +40,7 @@ class Finding:
     Fact를 근거로 룰이 '이건 취약하다'고 판단한 결과.
     심각도·CWE·교육 연결 정보가 붙는다.
     """
-    rule_id: str # 해당 보안 룰 ID
+    id: str # 해당 보안 룰 ID
     severity: Severity # 지정 Enum 클래스
     cwe: str # CWE 번호
     subject: str # 대상 리소스
