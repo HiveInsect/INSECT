@@ -1,0 +1,268 @@
+# =============================================================================
+# INSECT 파서 스트레스 테스트용 대형 compose 파일
+# 마이크로서비스 이커머스 스택 컨셉 (기존 fixture와 완전히 다른 구성)
+# 모든 파서 함수 + 엣지 케이스 최대 커버
+# =============================================================================
+version: "3.9"
+
+services:
+
+  # ── API 게이트웨이: 다양한 포트 문법 총집합 ──────────────────────
+  gateway:
+    image: traefik:v2.10@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+    ports:
+      - "80:80"
+      - "443:443/tcp"
+      - "8080:8080/udp"
+      - "127.0.0.1:9090:9090"
+      - "[::1]:9091:9091"
+      - target: 9092
+        published: 9092
+        protocol: tcp
+        host_ip: 0.0.0.0
+      - target: 9093
+        published: 19093
+        protocol: udp
+      - "53"
+      - "6000-6005:7000-7005"
+    command: --api.insecure=true --providers.docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - frontend
+      - backend
+
+  # ── 인증 서비스: 하드코딩 시크릿 지옥 (dict env) ─────────────────
+  auth-service:
+    image: my-registry.local:5000/auth-service:2.1.0
+    user: "1000:1000"
+    read_only: true
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      JWT_SIGNING_KEY: "super-secret-jwt-key-do-not-commit-2024"
+      OAUTH_CLIENT_SECRET: gho_abcdefghijklmnopqrstuvwxyz1234567890
+      SESSION_SECRET: "another-hardcoded-secret"
+      REDIS_URL: redis://:redispassword@cache:6379/0
+      LDAP_BIND_PASSWORD: "admin123"
+      MFA_ENABLED: true
+      MAX_SESSIONS: 100
+      DEBUG_AUTH: false
+      RUNTIME_TOKEN: ${RUNTIME_TOKEN}
+      ESCAPED_LITERAL: $$HOME/config
+    security_opt:
+      - "no-new-privileges:true"
+      - "apparmor:docker-default"
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    networks:
+      - backend
+
+  # ── 결제 서비스: 극도로 위험한 설정 총집합 ──────────────────────
+  payment-processor:
+    image: payment:latest
+    privileged: true
+    network_mode: host
+    pid: host
+    ipc: host
+    userns_mode: host
+    cap_add:
+      - SYS_ADMIN
+      - SYS_MODULE
+      - NET_ADMIN
+      - DAC_OVERRIDE
+    security_opt:
+      - "seccomp:unconfined"
+      - "label:disable"
+    devices:
+      - /dev/mem:/dev/mem:rwm
+      - /dev/kmsg:/dev/kmsg
+      - /dev/sda:/dev/sda:r
+    volumes:
+      - /:/host:rw
+      - /etc/shadow:/etc/shadow:ro
+      - /proc:/host/proc
+      - /var/run/docker.sock:/var/run/docker.sock
+      - type: bind
+        source: /home/user/.aws
+        target: /root/.aws
+        read_only: false
+      - type: volume
+        source: payment-data
+        target: /data
+    environment:
+      - STRIPE_SECRET_KEY=itssupersecret
+      - PAYMENT_DB_PASSWORD=paymentpass123
+      - PCI_MODE=true
+      - ENCRYPTION_KEY
+
+  # ── 데이터베이스: 외부 노출 + 인증 없음 ─────────────────────────
+  postgres-main:
+    image: postgres:16.1-alpine
+    ports:
+      - "0.0.0.0:5432:5432"
+    environment:
+      POSTGRES_PASSWORD: ""
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_USER: postgres
+      POSTGRES_DB: ecommerce
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./sql/init:/docker-entrypoint-initdb.d:ro
+    shm_size: 256mb
+
+  mysql-legacy:
+    image: mysql:5.7
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_DATABASE: legacy
+    volumes:
+      - mysqldata:/var/lib/mysql
+
+  mongodb:
+    image: mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: mongoadmin
+
+  # ── 캐시: 리스트 env + bare key ─────────────────────────────────
+  cache:
+    image: redis:7.2-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+    command: redis-server --requirepass redispassword --appendonly yes
+    user: redis
+    read_only: true
+    environment:
+      - REDIS_MAXMEMORY=256mb
+      - REDIS_APPEND_ONLY
+      - TZ=UTC
+    networks:
+      - backend
+
+  # ── 메시지 큐 ───────────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - backend
+
+  # ── 검색 엔진: 빌드 + 시크릿 build arg ──────────────────────────
+  elasticsearch:
+    build:
+      context: ./search
+      dockerfile: Dockerfile.es
+      args:
+        ES_VERSION: "8.11.0"
+        ELASTIC_PASSWORD: "changeme-in-prod"
+        LICENSE_KEY: es-license-abcdef123456
+    image: custom-elasticsearch:8.11
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+  # ── 프론트엔드: 문자열 build + 변수 이미지 ──────────────────────
+  frontend:
+    build: ./frontend
+    image: frontend:${VERSION:-dev}
+    ports:
+      - "3000:80"
+    depends_on:
+      - gateway
+      - auth-service
+    networks:
+      - frontend
+
+  # ── 워커: Windows 경로 + 디바이스 조합 ──────────────────────────
+  windows-worker:
+    image: mcr.microsoft.com/dotnet/aspnet:8.0
+    volumes:
+      - "C:\\ProgramData\\app:C:\\app\\data"
+      - "C:\\logs:C:\\app\\logs:ro"
+      - "E:/shared:E:/mnt/shared:rw"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+
+  # ── 모니터링: 호스트 마운트 다수 ────────────────────────────────
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "8081:8080"
+
+  # ── 정상 서비스 (오탐 검증 대조군) ──────────────────────────────
+  well-configured:
+    image: nginx:1.25.3-alpine@sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab
+    user: "101:101"
+    read_only: true
+    ports:
+      - "127.0.0.1:8443:8443"
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - "no-new-privileges:true"
+    networks:
+      - frontend
+
+  # ── 최소 서비스 (필드 거의 없음) ────────────────────────────────
+  minimal:
+    image: busybox
+
+# =============================================================================
+# 최상위 섹션들
+# =============================================================================
+volumes:
+  pgdata:
+    driver: local
+  mysqldata:
+  mongodata:
+    external: true
+  payment-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=10.0.0.1,rw
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+    internal: true
+  monitoring:
+    external: true
+    name: shared_monitoring
+  isolated:
+    internal: true
+    driver: bridge

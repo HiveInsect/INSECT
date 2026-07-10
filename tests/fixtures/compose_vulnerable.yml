@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15
+    privileged: true
+    read_only: false
+    ports:
+      - "0.0.0.0:5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=supersecret123
+      - POSTGRES_USER=admin
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - seccomp:unconfined
+    pid: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  web:
+    image: myapp:latest
+    build:
+      context: .
+      args:
+        API_SECRET_KEY: "hardcoded-in-build-layer"
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://admin:supersecret123@db:5432/mydb
+      SECRET_KEY: "dev-secret-key"
+    network_mode: host
+    ipc: host
+
+networks:
+  default:
+    driver: bridge

@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:16
+    ports:
+      - "0.0.0.0:5432:5432"
+      - target: 6379
+        published: 6379
+        host_ip: "127.0.0.1"
+    environment:
+      DB_PASSWORD: hunter2
+      DB_USER: admin
+    user: root
+    privileged: true
+    read_only: false
+    network_mode: host
+    cap_add:
+      - SYS_ADMIN
+    cap_drop:
+      - ALL
+    security_opt:
+      - "no-new-privileges:true"
+    pid: host
+    ipc: host
+    userns_mode: host
+    volumes:
+      - ./data:/var/lib/postgresql/data
+      - pgdata:/other/path
+      - type: bind
+        source: ./init.sql
+        target: /docker-entrypoint-initdb.d/init.sql
+        read_only: true
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0:rw
+      - /dev/snd:/dev/snd
+    build:
+      context: ./db
+      args:
+        VERSION: "16"
+        DEBUG: "true"
+
+  web:
+    image: nginx
+    environment:
+      - API_KEY=abc123
+      - DEBUG_MODE
+    build: ./web
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    internal: true
