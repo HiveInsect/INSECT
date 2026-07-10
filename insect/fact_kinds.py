@@ -19,3 +19,4 @@ class FactKind(str, Enum):
     SECURITY_OPT = "security_opt"
     MOUNT = "mount"
     DEVICE = "device"
+    IMAGE = "image"
