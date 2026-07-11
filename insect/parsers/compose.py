@@ -293,9 +293,7 @@ def _parse_simple_fields(service_name, service_config, file, line) -> list[Fact]
         if field in service_config:
             facts.append(Fact(kind=kind, subject=service_name,
                                attrs=make_attrs(service_config[field]),
-                               file=file, line=line, source_format="compose"
-                            )
-                        )
+                               file=file, line=line, source_format="compose"))
     return facts
 
 
