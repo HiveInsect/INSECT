@@ -1,5 +1,6 @@
 from insect.facts import Fact, Finding, Severity
 from typing import Protocol
+from insect.rules import public_bind
 
 class Rule(Protocol):
     id: str
@@ -29,3 +30,6 @@ class RuleRegistry:
     @classmethod
     def clear(cls): # 룰 목록 초기화
         cls._rules = {}
+
+# -------------------------------- 룰 등록 --------------------------------------
+RuleRegistry.register(public_bind.PublicBindRule)
