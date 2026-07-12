@@ -75,7 +75,7 @@ class PublicBindRule:
                 #   evidence=[f], subject/file/line은 f에서 가져오기
                 #   severity, cwe, message, lesson_id 채우기
                 findings.append(Finding(
-                    rule_id=meta["id"],
+                    id=meta["id"],
                     severity=meta["severity"],
                     cwe=self.cwe,
                     subject=f.subject,      # ← 여기서 채워짐 (Fact에서 가져옴)
