@@ -60,8 +60,6 @@ class PublicBindRule:
                 images_by_subject[f.subject] = f
         for f in facts:
             if f.kind == FactKind.BIND:
-                # TODO: 네 조건 (host_port 매핑됨 / host==0.0.0.0 / target_port in DB_PORTS / tcp)
-                # 하나라도 안 맞으면 continue
                 if (f.attrs["host_port"] is None            # 매핑 없음 = 외부 노출 안 됨
                     or f.attrs["host"] != "0.0.0.0"):     # 모든 인터페이스 바인딩 아님
                     continue
@@ -71,9 +69,6 @@ class PublicBindRule:
                 evidence = [f]
                 if image_fact is not None:
                     evidence.append(image_fact)
-                # TODO: 다 통과하면 Finding 생성
-                #   evidence=[f], subject/file/line은 f에서 가져오기
-                #   severity, cwe, message, lesson_id 채우기
                 findings.append(Finding(
                     id=meta["id"],
                     severity=meta["severity"],
