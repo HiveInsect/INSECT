@@ -82,8 +82,6 @@ class PublicBindRule:
                     lesson_id=meta["lesson_id"],
                     evidence=evidence,
                 ))
-
-        
         return findings
     
     def _classify(self, bind_fact: Fact, image_fact: Fact | None) -> str:
