@@ -51,6 +51,8 @@ DB_IMAGES = {
 class PublicBindRule:
     id = "PORT_EXPOSED"
     cwe = "CWE-1327"
+    description="0.0.0.0 바인딩 (Docker Compose ports, 앱 서버 host 설정, DB 설정 등)"
+
     def detect(self, facts: list[Fact]) -> list[Finding]:
         findings = []
         images_by_subject = {}
