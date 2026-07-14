@@ -1,3 +1,10 @@
+"""서비스가 모든 네트워크 인터페이스(0.0.0.0)에 공개 바인딩되는지 탐지하는 룰 (CWE-1327).
+
+포트가 0.0.0.0에 바인딩되면 로컬호스트뿐 아니라 외부에서도 접근 가능해진다.
+DB 포트/이미지인 경우 전체 데이터 노출로 이어질 수 있어 HIGH,
+그 외 일반 서비스 포트는 상대적으로 낮은 LOW로 등급을 나눈다.
+"""
+
 from insect.facts import Finding, Severity, Fact
 from insect.fact_kinds import FactKind
 from insect.rule_kinds import RuleKind
